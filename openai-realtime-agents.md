@@ -1,4 +1,4 @@
-# [openai/openai-realtime-agents][https://github.com/openai/openai-realtime-agents]
+# [openai/openai-realtime-agents](https://github.com/openai/openai-realtime-agents)
 
 以下がこのリポジトリの**本質的なポイント**です。詳細なコードの解説はすでに述べた通りですが、特に押さえておくべき重要事項を簡潔にまとめます。
 
