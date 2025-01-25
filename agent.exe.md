@@ -1,4 +1,4 @@
-#[agent.exe](https://github.com/corbt/agent.exe)
+# [agent.exe](https://github.com/corbt/agent.exe)
 
 以下は、このリポジトリに含まれているディレクトリ・ファイル構成と、それぞれの役割や目的についての解説です。Electron + React + TypeScript（Electron React Boilerplate由来の構成）をベースにしているため、それに関連する典型的なファイルやスクリプトが含まれています。
 
