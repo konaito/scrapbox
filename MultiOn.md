@@ -1,192 +1,104 @@
 # [MultiOn](https://github.com/MULTI-ON/cookbook)
 
-以下のリポジトリは、**[MultiOn](https://www.multion.ai)** というウェブ操作用AIエージェントの活用例やサンプルコードをまとめた「Cookbook（レシピ集）」です。フォルダごとに用途が異なり、Notebook形式のサンプルからPythonプロジェクトまで、さまざまなユースケースが含まれています。以下で各ディレクトリと主要ファイルの概要を解説します。
+以下では、まず**非エンジニア向け**に「このCookbookを使って何ができるか」をざっくりとイメージできるように説明し、その後に**エンジニア向け**に「ロジックやカスタマイズの仕組み」をもう少し詳しく解説します。
 
 ---
 
-## ルート構成
+## 非エンジニア向け：何ができるのか？
 
-```
-├── .github
-│   └── ISSUE_TEMPLATE
-│       └── bug_report.md
-├── .gitignore
-├── LICENSE
-├── README.md
-├── accommodation
-│   └── accommodation.ipynb
-├── coding-agent
-│   ├── README.md
-│   ├── agent.py
-│   ├── app.py
-│   ├── prompts.py
-│   └── pyproject.toml
-├── competitor-research
-│   ├── README.md
-│   ├── agent.py
-│   ├── main.py
-│   ├── prompts.py
-│   └── pyproject.toml
-├── internet-of-agents
-│   ├── README.md
-│   ├── manager.py
-│   ├── pyproject.toml
-│   ├── social_manager.py
-│   ├── type.py
-│   ├── viz.py
-│   └── worker.py
-├── job-search
-│   ├── README.md
-│   ├── agent.py
-│   ├── main.py
-│   ├── prompts.py
-│   └── pyproject.toml
-├── news-digest
-│   └── news_digest.ipynb
-├── personalized-travel-agent
-│   └── mem0_travel_agent.ipynb
-├── recursive-scraping
-│   └── recursive_scraping.ipynb
-├── restaurant-booking
-│   └── restaurant_booking.ipynb
-└── scraping
-    └── scrape_linkedin.ipynb
-```
+**MultiOn Cookbook** は、ブラウザ操作や情報取得を“AIエージェント”に任せることで、以下のようなタスクを**自動化**または**効率化**できるサンプル集です。
+
+1. **ウェブサイト上での情報収集やスクレイピング**  
+   - *例*: ニュースサイトから記事や要約を取得（`news-digest`）
+   - *例*: LinkedInの検索結果からプロフィール情報を収集（`scraping`）
+   - *例*: Hacker Newsを再帰的に巡回し投稿やコメントを収集（`recursive-scraping`）
+
+2. **ブラウザでの操作を自動化して予約や申し込みをする**  
+   - *例*: Airbnbで宿泊施設を探し予約する（`accommodation`）
+   - *例*: OpenTableでレストラン予約を行う（`restaurant-booking`）
+
+3. **Web上の作業を“エージェント”に委任して複数のタスクを並列実行する**  
+   - *例*: SNS投稿を複数同時に行う、あるいは競合リサーチをまとめて行う（`internet-of-agents`）
+   - *例*: 求人検索と応募をまとめて実行する（`job-search`）
+
+4. **コーディング作業や調査、ノート取りなどをサブエージェントに割り当てる**  
+   - *例*: “プログラマー”“リサーチャー”“ノートテイカー”の3種エージェントを連携させ、Webリサーチしながらコードを書く作業を補助（`coding-agent`）
+
+5. **個人の嗜好や過去のデータを活用して提案**  
+   - *例*: [Mem0](https://mem0.ai)等からユーザーの過去メモを取得して“パーソナライズされた旅行プラン”を提案（`personalized-travel-agent`）
+
+**ポイントは「実際にブラウザを操作する」「特定の操作を繰り返し自動化する」「スクレイピングや入力などに連続的に対応する」こと**です。  
+ユーザーは、シンプルな自然言語で「●●して欲しい」「検索結果から△△を集めて」「一番条件の良いプランを選んで予約して」といった指示を出すだけで、AIエージェントがステップバイステップで実行してくれます。
 
 ---
 
-## 共通・補助ファイル
+## エンジニア向け：ロジックの概要とカスタマイズポイント
 
-- **`.github/ISSUE_TEMPLATE/bug_report.md`**  
-  GitHubでバグ報告をするときに使われるテンプレートMarkdownファイル。OSやブラウザ、発生した問題の詳細などの記入欄がある。
+### 1. **環境・依存関係**
 
-- **`.gitignore`**  
-  Pythonの仮想環境や一時ファイルなど、Gitで追跡しないファイルやフォルダを定義している。
+- すべてのプロジェクトで**Poetry**が採用されており、`pyproject.toml` で依存パッケージ（`multion`, `openai`, `python-dotenv`など）が管理されています。  
+- 多くの例で「`local=True`（ブラウザ拡張を使う形）」と「`remote`モード（サーバー実行）」の両方のパターンがあり、ブラウザ操作が必要なら`local=True`が指定されます。
 
-- **`LICENSE`**  
-  MIT License のライセンス文書。誰でもソフトウェアの利用・改変・再配布ができるライセンス形態。
+### 2. **MultiOn Clientの基本メソッド**
 
-- **`README.md`**  
-  リポジトリ全体の概要説明。MultiOnの紹介や、このCookbookに含まれる各レシピへのリンクなどがまとめられている。
+**`client = MultiOn(api_key=...)`**  
+- `api_key`を指定してMultiOnのクライアントを生成します。
 
----
+**`client.sessions.create(url=..., local=...)`**  
+- 指定したURLで新規ブラウザセッション（エージェント）を立ち上げます。  
+- `local=True` なら自分のPCのブラウザを、`local=False` (または省略) ならリモート環境でブラウザ操作を行います。
 
-## Notebookフォルダとサンプル
+**`client.sessions.step(session_id=..., cmd=...)`**  
+- 既存セッションに対して、人間がブラウザ上でするような「1ステップ」を自然言語で指示（`cmd`）します。  
+- セッション内のエージェントがフォーム入力、ボタン押下、ページ移動などを自動実行し、結果が返ってきます。
 
-### accommodation
-- **`accommodation.ipynb`**  
-  Airbnbでの宿泊施設検索や予約に関するサンプルNotebook。  
-  - **MultiOn** の `step` と `retrieve` を使い、ブラウザ操作や情報取得を自動化している。
+**`client.retrieve(..., cmd=..., fields=[...])`**  
+- 多くの例で使われる「スクレイピング用」の操作。スクロールやJavaScriptレンダリングに対応しつつ、指定したページ要素をまとめて構造化データとして返します。  
+- `scroll_to_bottom=True` でページ下部まで自動スクロールし、Lazy Loadされた要素を取得するサンプルが多いです。
 
-### news-digest
-- **`news_digest.ipynb`**  
-  ニュース記事の収集と簡単な分析を行うNotebook。ニュースを検索し、記事をスクレイピングして要約する例を示している。
+### 3. **応用例：並列処理・再帰呼び出し**
 
-### personalized-travel-agent
-- **`mem0_travel_agent.ipynb`**  
-  [Mem0](https://mem0.ai) という外部サービスと連携し、ユーザーの旅行嗜好データを活用する「パーソナライズ旅行エージェント」のサンプルNotebook。  
-  - ユーザーの過去メモを参照しながら旅行提案を行う例を示す。
+- **並列実行**  
+  例えば `ThreadPoolExecutor` や `prefect` を使い、一度に複数のページをスクレイピングする例がいくつか含まれています（`internet-of-agents` や `recursive-scraping`など）。  
+  エージェント1つを各タスクに割り当てて並行して情報取得を行うことができます。
 
-### recursive-scraping
-- **`recursive_scraping.ipynb`**  
-  Hacker Newsのようなサイトを再帰的にスクレイピング（親ページだけでなく、リンク先コメントなど深層ページにも移動して情報取得）するサンプルNotebook。  
-  - ThreadPoolExecutorと組み合わせて並列処理を行う例がある。
+- **再帰的スクレイピング**  
+  あるページのリンク先をさらに取得し、そこで新たな`retrieve`を呼ぶ、といった**再帰構造**のデモが `recursive_scraping.ipynb` に示されています。大規模サイトの深掘りができる点が利点です。
 
-### restaurant-booking
-- **`restaurant_booking.ipynb`**  
-  OpenTableでレストラン予約を自動化する例Notebook。日程や人数、場所を指定して予約ページでの操作をエージェントに任せるフローを紹介。
+### 4. **複数エージェントの統括とプロンプト設計**
 
-### scraping
-- **`scrape_linkedin.ipynb`**  
-  LinkedInのプロフィール情報をスクレイピングするサンプルNotebook。ログイン後に検索結果を自動でたどり、プロフィール詳細を取得する実装例。
+- `coding-agent` や `competitor-research` のようなフォルダでは、**「メインのオーケストレーター（管理エージェント）」**がユーザーからの指示を受け取り、必要に応じて
+  - 「プログラマエージェントにコードを書かせる」
+  - 「リサーチャーエージェントにWeb検索させる」
+  - 「ノートテイカー（メモ取り）エージェントに情報を保管させる」  
+  といった指示を投げ、最終的にタスクを完了させる流れが書かれています。
 
----
+- **プロンプトエンジニアリング**  
+  各エージェントに与えるプロンプト（`programmer_notes` や `researcher_notes` など）で、使用できるコマンドや注意点が細かく書かれています。これにより「余計な操作をしない」「ファイルの編集方法」「リロードしない」などの制限やガイドをエージェントに与えます。
 
-## Pythonプロジェクト別フォルダ
+### 5. **カスタマイズするときのポイント**
 
-### coding-agent
-エージェントを用いてコーディングタスクを自動化するプロジェクト。
+1. **APIキー切り替え**  
+   - `.env` や `pyproject.toml` の設定によってAPIキーを渡す仕組みが多いです。自分の環境で`API_KEY`を設定してから動かす必要があります。
 
-- **`README.md`**  
-  Poetryでのセットアップ手順や、Gradioを利用した実行方法の説明。
-- **`agent.py`**  
-  「プログラマー／リサーチャー／ノートテイカー」3つのマルチエージェントを統括し、ユーザーのコーディング要求に応じてブラウザ操作やメモ取りなどを行うクラス `DevOn` を定義。
-- **`app.py`**  
-  Gradioインターフェースを使ったWebアプリケーションのエントリポイント。ユーザーがチャット形式で命令を与えると、`DevOn` クラスが処理を進める。
-- **`prompts.py`**  
-  システムプロンプトやエージェント用の定型メッセージ（プログラマー用、リサーチャー用など）がまとめられている。
-- **`pyproject.toml`**  
-  Poetryの設定ファイル。依存パッケージやメタデータが書かれている。
+2. **対象サイトや検索条件**  
+   - Notebookや`cmd`部分を自分の好みのキーワードやURLに変えれば、任意のサイトをスクレイピングできるようになります。
 
-### competitor-research
-競合リサーチを行うエージェントの例。
+3. **必要なフィールドの指定**  
+   - `retrieve` メソッドの `fields=[...]` で、「取得したい要素のラベル」や「構造的に欲しいデータ」を指定可能です。シンプルに「title」「url」「image_url」などのフィールド名に変えてみると良いでしょう。
 
-- **`README.md`**  
-  プロジェクト概要と実行手順。PoetryやOpenAI・MultiOnのAPIキー設定など。
-- **`agent.py`**  
-  `Analyst` クラスを定義。マルチエージェントを用いて競合企業を探し、解析結果を「State」にまとめるフローを実装。
-- **`main.py`**  
-  プログラム実行のエントリポイント。`analyst.run(...)` を呼び出し競合調査を実行する。
-- **`prompts.py`**  
-  システムメッセージ、ツール呼び出しのJSONスキーマなどを定義。
-- **`pyproject.toml`**  
-  Poetryの設定ファイル。
+4. **ステップ実行数やスクロール回数**  
+   - 例では `scroll_to_bottom=True` としている場面が多いですが、大量データ取得時には件数制限やページごとの処理なども考慮が必要です。
 
-### internet-of-agents
-インターネット上で多数のAIエージェントを動かす「Internet of Agents」的な並列処理の事例。
-
-- **`README.md`**  
-  使い方や流れの説明。Chrome拡張を使う設定、.envファイルへのAPIキー記入など。
-- **`manager.py`**  
-  いくつかのタスクをまとめて並列実行する「ManagerAgent」を定義。`prefect` を使ってフローを管理している。
-- **`social_manager.py`**  
-  LinkedInやX(Twitter), Facebookに投稿して宣伝をするマネージャーの例を実行するスクリプト。
-- **`type.py`**  
-  タスクのデータ型定義（Pydanticのモデル）。`Task`, `TaskList`など。
-- **`viz.py`**  
-  `graphviz` を使ってタスク一覧を可視化するサンプルコード。
-- **`worker.py`**  
-  個別のウェブ操作（`perform_task`）を行うワーカー用クラス。`MultiOn` のセッション開始→ステップ実行→終了処理を担当。
-- **`pyproject.toml`**  
-  Poetryの設定ファイル。
-
-### job-search
-求人検索と応募を行うエージェントの事例。
-
-- **`README.md`**  
-  概要とセットアップ手順。
-- **`agent.py`**  
-  `Agent` クラスが定義され、`browse` や `retrieve` などのツールを使ってジョブ情報を収集し、Stateに進捗を貯める仕組みがある。
-- **`main.py`**  
-  実行スクリプト。`agent.run(...)` を呼んで求人検索と応募を自動化する。
-- **`prompts.py`**  
-  こちらでもツール呼び出し用のJSONスキーマやシステムプロンプトを定義。
-- **`pyproject.toml`**  
-  Poetryの設定ファイル。
-
----
-
-## 各Notebookの概要
-
-1. **accommodation/accommodation.ipynb**  
-   Airbnbで宿泊先を検索して予約する流れのサンプル。
-2. **news-digest/news_digest.ipynb**  
-   ニュースサイトで記事を取得・要約するサンプル。
-3. **personalized-travel-agent/mem0_travel_agent.ipynb**  
-   ユーザーの履歴情報をMem0から取得して、個人に合わせた旅行プランを提案するデモ。
-4. **recursive-scraping/recursive_scraping.ipynb**  
-   Hacker Newsなどの掲示板のリンクを再帰的にたどってスクレイピングを行う例。
-5. **restaurant-booking/restaurant_booking.ipynb**  
-   OpenTableを使い、レストランの検索と予約を自動化する例。
-6. **scraping/scrape_linkedin.ipynb**  
-   LinkedInにログインし、プロフィール情報を検索・取得するサンプル。
+5. **並列処理 or 単一処理**  
+   - 一度に大量アクセスしたい場合は `ThreadPoolExecutor` を、1件ずつ安全に実行したい場合はシンプルにループで回す方法など、規模にあわせた実装を行えます。
 
 ---
 
 ## まとめ
-- **MultiOn** は「自然言語でのウェブ操作やスクレイピング」が可能なプラットフォームで、本リポジトリには具体的な活用例が数多く収録されています。
-- **Notebook形式のサンプル** では、特定のウェブサイトやユースケースに応じたステップ実行や構造化データの抽出（`retrieve`）を体験できます。
-- **各Pythonプロジェクト** では、より高度なエージェントの連携例（プログラミング支援、競合調査、求人応募、など）や複数タスクの並列実行が含まれています。
-- **拡張性・再利用性** を考慮した設計がされており、Poetryを使って環境を整えれば、自分のAPIキーを設定するだけでサンプルがすぐに動くようになっています。
 
-興味のあるフォルダやNotebookを選んで試してみると、MultiOnの使い方や可能性を一通り学習できます。さらに発展させれば、独自のAIエージェントや自動化ツールの構築が可能になるでしょう。
+- **非エンジニアの方**にとっては、「ブラウザ操作やスクレイピングをAIに任せる」ことで、競合調査、予約操作、求人応募などの単純作業やリサーチを効率化できる点がメリットです。  
+
+- **エンジニアの方**は、Cookbookにある各サンプルコードをベースに「並列実行」「再帰スクレイピング」「複数エージェントのプロンプト設計」などの仕組みを理解し、自分用にカスタマイズしながら柔軟に機能を拡張できます。  
+
+こうした設計のおかげで、簡単なユースケースから高度なシステム開発までスケールアップが可能です。ぜひサンプルを手がかりに、独自のウェブ操作・スクレイピングエージェントを作ってみてください。
