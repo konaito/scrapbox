@@ -1,4 +1,4 @@
-#[MultiOn](https://github.com/MULTI-ON/cookbook)
+# [MultiOn](https://github.com/MULTI-ON/cookbook)
 
 以下のリポジトリは、**[MultiOn](https://www.multion.ai)** というウェブ操作用AIエージェントの活用例やサンプルコードをまとめた「Cookbook（レシピ集）」です。フォルダごとに用途が異なり、Notebook形式のサンプルからPythonプロジェクトまで、さまざまなユースケースが含まれています。以下で各ディレクトリと主要ファイルの概要を解説します。
 
